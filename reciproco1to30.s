@@ -1,36 +1,38 @@
 //==============================================================
-// Autor:Juan Carmona con ChatGPT Tutor ARM64
+// Autor: Juan Carmona con ChatGPT Tutor ARM64
 // Descripción: Imprimir los enteros del 1 al 30 apareados con sus recíprocos
-// Plataforma: Raspberry Pi 4 / Ubuntu 64-bit (AArch64)
-// Compilar:  as -o reciprocos.o reciprocos.s && ld -o reciprocos reciprocos.o
-// Ejecutar:  ./reciprocos
+// Plataforma: Raspberry Pi 4 / Ubuntu ARM64
+// Compilar:  as -o reciproco1to30.o reciproco1to30.s && ld -o reciproco1to30 reciproco1to30.o
+// Ejecutar:  ./reciproco1to30
 //==============================================================
 
 .section .data
-num_buffer:    .space 16
-float_buffer:  .space 32
-newline:       .asciz "\n"
-arrow:         .asciz " -> "
+num_buffer:     .space 32
+float_buffer:   .space 64
+newline:        .asciz "\n"
+arrow:          .asciz " -> "
+punto:          .asciz "."
+float_millon:   .double 1000000.0        // ← constante segura
 
 .section .text
 .global _start
 
 _start:
-    mov x19, #1            // número inicial
-    mov x20, #30           // número final
+    mov x19, #1              // número inicial
+    mov x20, #30             // número final
 
 bucle:
-    //------------------------------------
-    // Convertir número entero a texto
-    //------------------------------------
+    //----------------------------------------------------------
+    // 1. Imprimir número entero
+    //----------------------------------------------------------
     mov x0, x19
     adr x1, num_buffer
-    bl int_to_ascii        // convierte entero → ASCII
-    // salida: x9 = longitud, x1 = dirección del texto
+    bl int_to_ascii
+    // x1 = dirección de texto, x9 = longitud
 
-    // imprimir número
+    // escribir número
     mov x8, #64
-    mov x0, #1             // stdout
+    mov x0, #1
     mov x2, x9
     svc #0
 
@@ -41,20 +43,20 @@ bucle:
     mov x2, #4
     svc #0
 
-    //------------------------------------
-    // Calcular recíproco en punto flotante
-    //------------------------------------
-    scvtf d0, x19          // d0 = float(x19)
-    fmov d1, #1.0
-    fdiv d0, d1, d0        // d0 = 1.0 / d0
+    //----------------------------------------------------------
+    // 2. Calcular recíproco: 1.0 / n
+    //----------------------------------------------------------
+    scvtf d0, x19          // d0 = float(n)
+    fmov  d1, #1.0
+    fdiv  d0, d1, d0       // d0 = 1.0 / n
 
-    //------------------------------------
-    // Convertir d0 (float) a texto ASCII
-    //------------------------------------
+    //----------------------------------------------------------
+    // 3. Convertir recíproco a texto (6 decimales)
+    //----------------------------------------------------------
     adr x1, float_buffer
     bl float_to_ascii
 
-    // imprimir recíproco
+    // imprimir resultado
     mov x8, #64
     mov x0, #1
     mov x2, x9
@@ -67,24 +69,25 @@ bucle:
     mov x2, #1
     svc #0
 
-    //------------------------------------
-    // siguiente número
-    //------------------------------------
+    //----------------------------------------------------------
+    // 4. siguiente número
+    //----------------------------------------------------------
     add x19, x19, #1
     cmp x19, x20
     ble bucle
 
-    //------------------------------------
-    // salir
-    //------------------------------------
+    //----------------------------------------------------------
+    // 5. salir del programa
+    //----------------------------------------------------------
     mov x8, #93
     mov x0, #0
     svc #0
 
 
 //--------------------------------------------------------------
-// int_to_ascii: convierte número entero en ASCII
-// x0 = número, x1 = buffer, salida: x1 inicio texto, x9 longitud
+// int_to_ascii: convierte entero positivo en texto ASCII
+// Entrada: x0 = número, x1 = buffer
+// Salida:  x1 = inicio texto, x9 = longitud
 //--------------------------------------------------------------
 int_to_ascii:
     add x1, x1, #15
@@ -105,11 +108,11 @@ int_to_ascii:
 
 
 //--------------------------------------------------------------
-// float_to_ascii: convierte un float (d0) en texto decimal
-// Muy simple: muestra hasta 6 decimales
+// float_to_ascii: convierte d0 (float) a texto decimal
+// muestra 6 decimales
 //--------------------------------------------------------------
 float_to_ascii:
-    // obtener parte entera
+    // parte entera
     fcvtzu x2, d0           // x2 = (int)d0
     adr x1, float_buffer
     bl int_to_ascii
@@ -121,15 +124,13 @@ float_to_ascii:
     mov x2, #1
     svc #0
 
-    // procesar 6 decimales
-    movz x2, #0x4240
-    movk x2, #0xF, lsl #16
-    scvtf d1, x2
+    // multiplicar por 1 000 000 para obtener decimales
+    ldr d1, =float_millon   // cargar dirección
+    ldr d1, [d1]            // cargar valor real 1 000 000.0
     fmul d0, d0, d1
-    fcvtzu x0, d0
+    fcvtzu x0, d0           // x0 = entero de (d0*1 000 000)
+
+    // convertir decimales a texto
     adr x1, float_buffer
     bl int_to_ascii
     ret
-
-.section .data
-punto: .asciz "."
