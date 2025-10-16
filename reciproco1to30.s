@@ -125,10 +125,10 @@ float_to_ascii:
     svc #0
 
     // multiplicar por 1 000 000 para obtener decimales
-    ldr d1, =float_millon   // cargar dirección
-    ldr d1, [d1]            // cargar valor real 1 000 000.0
+    ldr x1, =float_millon   // ✅ cargar dirección en registro general
+    ldr d1, [x1]            // ✅ cargar valor double 1000000.0
     fmul d0, d0, d1
-    fcvtzu x0, d0           // x0 = entero de (d0*1 000 000)
+    fcvtzu x0, d0           // x0 = entero(d0 * 1000000)
 
     // convertir decimales a texto
     adr x1, float_buffer
