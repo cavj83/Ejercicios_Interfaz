@@ -122,7 +122,8 @@ float_to_ascii:
     svc #0
 
     // procesar 6 decimales
-    fmov d1, #1000000.0
+    mov x2, #1000000
+    scvtf d1, x2
     fmul d0, d0, d1
     fcvtzu x0, d0
     adr x1, float_buffer
